@@ -24,7 +24,7 @@ export class UserController {
       return res.status(200).json(user)
     } catch (error) {
       console.log('getDetailUser - UserController - error ', error)
-      return res.status(error?.code).json(error)
+      return res.status(error.statusCode).send(error)
     }
   }
 
@@ -40,7 +40,7 @@ export class UserController {
       return res.status(200).json(users)
     } catch (error) {
       console.log('getDetailUser - UserController - error ', error)
-      return res.status(error?.code).json(error)
+      return res.status(error.statusCode).send(error)
     }
   }
 }
