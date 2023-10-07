@@ -1,4 +1,4 @@
-import { Users } from "src/modules/users/models/user.entity";
+import { Users } from "../../../modules/users/models/user.entity";
 import { BaseEntity } from "../../../common/base.entity";
 import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
 import { PermissionStatuses, RoleName } from "./permission.interface";

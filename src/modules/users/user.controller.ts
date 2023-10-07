@@ -1,18 +1,20 @@
-import { Controller, Get, Query, Req, Res, UseGuards } from "@nestjs/common";
+import { Controller, Get, Param, Query, Req, Res, UseGuards, UseInterceptors } from "@nestjs/common";
 import { UserService } from "./user.service";
 import { Users } from "./models/user.entity";
 import { Request, Response } from "express";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
-import { FindManyUserDto } from "./models/user.dto";
-import { JwtGuard } from "../auth/strategy/auth.guard";
+import { FindManyUserDto, FindOneUserDto } from "./models/user.dto";
+import { JwtAuthorizationGuard } from "../../guards/jwtAuthorization.guard";
+import { TimeoutInterceptor } from "../../interceptors/timeoutInterceptor";
 
 @ApiTags('Users')
 @ApiBearerAuth()
+@UseInterceptors(TimeoutInterceptor)
 @Controller('users')
 export class UserController {
   constructor(private userService: UserService) {}
 
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtAuthorizationGuard)
   @Get('/me')
   async getDetailUser(
     @Req() request: Request,
@@ -24,11 +26,32 @@ export class UserController {
       return res.status(200).json(user)
     } catch (error) {
       console.log('getDetailUser - UserController - error ', error)
-      return res.status(error.statusCode).send(error)
+      throw error
     }
   }
 
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtAuthorizationGuard)
+  @Get(':userId')
+  async getOneUser(
+    @Param() param: FindOneUserDto,
+    @Res() res: Response
+  ) {
+    try {
+      const user = await this.userService.findOneUser({
+        query: {
+          id: param.userId
+        },
+        checkExist: true
+      })
+
+      return res.status(200).json(user)
+    } catch (error) {
+      console.log('getOneUser - UserController - error ', error)
+      throw error
+    }
+  }
+
+  @UseGuards(JwtAuthorizationGuard)
   @Get('')
   async getAllUser(
     @Query() query: FindManyUserDto,
@@ -40,7 +63,7 @@ export class UserController {
       return res.status(200).json(users)
     } catch (error) {
       console.log('getDetailUser - UserController - error ', error)
-      return res.status(error.statusCode).send(error)
+      throw error
     }
   }
 }

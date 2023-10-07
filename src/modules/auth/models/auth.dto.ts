@@ -36,3 +36,10 @@ export class LoginUserDto {
   @IsNotEmpty()
   password: string
 }
+
+export class CookiesDto {
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  access_token: string
+}

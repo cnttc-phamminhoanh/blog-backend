@@ -1,20 +1,20 @@
-import { CanActivate, ExecutionContext, HttpException, Injectable, UnauthorizedException } from "@nestjs/common";
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import { UserService } from "../../../modules/users/user.service";
+import { UserService } from "../modules/users/user.service";
 
 @Injectable()
-export class JwtGuard implements CanActivate {
+export class JwtAuthorizationGuard implements CanActivate {
   constructor(
     private jwtService: JwtService,
-    private userService: UserService
+    private userService: UserService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
 
-    const { access_token, refresh_token } = request.cookies
+    const { access_token } = request.cookies
 
-    if (!access_token || !refresh_token) {
+    if (!access_token) {
       throw new UnauthorizedException()
     }
 
@@ -42,10 +42,6 @@ export class JwtGuard implements CanActivate {
 
       request.user = result;
     } catch (error) {
-        if (error?.message === 'jwt expired') {
-          throw new HttpException('Access token expired', 400)
-        }
-
         throw new UnauthorizedException()
       }
 

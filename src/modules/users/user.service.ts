@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Users } from "./models/user.entity";
 import { In, Like, Repository } from "typeorm";
@@ -51,7 +51,7 @@ export class UserService {
     } catch (error) {
       console.log('userService - findAllUser - error', error)
 
-      return Promise.reject(error)
+      throw error
     }
   }
 
@@ -62,17 +62,16 @@ export class UserService {
       })
 
       if (!user && checkExist) {
-        throw {
-          statusCode: 404,
-          message: 'User not found',
-        }
+        throw new HttpException('User Not Found', HttpStatus.NOT_FOUND)
       }
 
-      return user
+      const { password, ...result } = user
+
+      return result
     } catch (error) {
       console.log('userService - findOneUser - error', error)
 
-      return Promise.reject(error)
+      throw error
     }
   }
 
@@ -95,7 +94,7 @@ export class UserService {
     } catch (error) {
       console.log('userService - createOneUser - error', error)
 
-      return Promise.reject(error)
+      throw error
     }
   }
 
@@ -106,10 +105,7 @@ export class UserService {
       })
 
       if (!user) {
-        throw {
-          statusCode: 404,
-          message: 'User Not Found'
-        }
+        throw new HttpException('User Not Found', HttpStatus.NOT_FOUND)
       }
 
       const { password, ...result } = user
@@ -118,7 +114,25 @@ export class UserService {
     } catch (error) {
       console.log('userService - getDetailUser - error', error)
 
-      return Promise.reject(error)
+      throw error
+    }
+  }
+
+  async getUserWithEmail(email: string): Promise<Users> {
+    try {
+      const user = await this.userRepository.findOne({
+        where: { email }
+      })
+
+      if (!user) {
+        throw new HttpException('User Not Found', HttpStatus.NOT_FOUND)
+      }
+
+      return user
+    } catch (error) {
+      console.log('userService - getUserWithEmail - error', error)
+
+      throw error
     }
   }
 }

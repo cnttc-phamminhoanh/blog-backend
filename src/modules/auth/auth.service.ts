@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { UserService } from "../users/user.service";
 import { JwtService } from "@nestjs/jwt";
 import { RegisterUserData, LoginUserData } from "../users/models/user.interface";
@@ -13,20 +13,12 @@ export class AuthService {
     private jwtService: JwtService
   ) {}
 
-  async signAccessTokenAndRefreshToken(payload: SignAccessTokenAndRefreshTokenPayload) {
+  async signAccessToken(payload: SignAccessTokenAndRefreshTokenPayload) {
     try {
       const accessToken = await this.jwtService.signAsync(
         payload,
         {
-          expiresIn: '2m',
-          secret: process.env.JWT_SECRET
-        }
-      )
-
-      const refreshToken = await this.jwtService.signAsync(
-        payload,
-        {
-          expiresIn: '3m',
+          expiresIn: '5m',
           secret: process.env.JWT_SECRET
         }
       )
@@ -35,7 +27,6 @@ export class AuthService {
 
       return {
         access_token: accessToken,
-        refresh_token: refreshToken,
         userInfos: {
           ...rest,
           userId: sub
@@ -44,10 +35,7 @@ export class AuthService {
     } catch (error) {
       console.log('authService - signAccessTokenAndRefreshToken - error ', error)
 
-      return Promise.reject({
-        statusCode: 401,
-        message: 'Unauthorized'
-      })
+      throw new BadRequestException('Sign accessToken failed')
     }
   }
 
@@ -63,10 +51,7 @@ export class AuthService {
       })
 
       if (emailExist) {
-        throw {
-          statusCode: 400,
-          message: 'Email Already Exists'
-        }
+        throw new BadRequestException('Email Already Exists')
       }
 
       const newUser = await this.userService.createOneUser(data)
@@ -78,14 +63,11 @@ export class AuthService {
         email: newUser.email
       }
 
-      return this.signAccessTokenAndRefreshToken(payload)
+      return this.signAccessToken(payload)
     } catch (error) {
       console.log('authService - signAccessTokenAndRefreshToken - error ', error)
 
-      return Promise.reject({
-        statusCode: 400,
-        message: 'Register failed'
-      })
+      throw error
     }
   }
 
@@ -93,27 +75,16 @@ export class AuthService {
     try {
       const { email, password } = data
 
-      const user = await this.userService.findOneUser({
-        query: {
-          email
-        },
-        checkExist: false
-      })
+      const user = await this.userService.getUserWithEmail(email)
 
       if (!user) {
-        throw {
-          statusCode: 400,
-          message: 'Invalid UserName Or Password'
-        }
+        throw new BadRequestException('Invalid UserName Or Password')
       }
 
       const isMatch = await bcrypt.compare(password, user.password)
 
       if (!isMatch) {
-        throw {
-          statusCode: 400,
-          message: 'Invalid UserName Or Password'
-        }
+        throw new BadRequestException('Invalid UserName Or Password')
       }
 
       const payload = {
@@ -123,58 +94,11 @@ export class AuthService {
         email: user.email
       }
 
-      return this.signAccessTokenAndRefreshToken(payload)
+      return this.signAccessToken(payload)
     } catch (error) {
       console.log('authService - login - error ', error)
 
-      return Promise.reject({
-        statusCode: 400,
-        message: 'Login failed'
-      })
+      throw error
     }
   }
-
-  async refreshToken(refreshToken: string) {
-    try {
-      const verify = await this.jwtService.verifyAsync(
-        refreshToken,
-        {
-          secret: process.env.JWT_SECRET
-        }
-      )
-  
-      const user = await this.userService.findOneUser({
-        query: {
-          email: verify.email,
-          id: verify.id
-        },
-        checkExist: false
-      })
-  
-      if (!user) {
-        throw {
-          message: 'Unauthorized',
-          statusCode: 401,
-        }
-      }
-  
-      const payload = {
-        sub: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email
-      }
-  
-      return this.signAccessTokenAndRefreshToken(payload)
-    } catch (error) {
-      console.log('authService - refreshToken - error ', error)
-
-      return Promise.reject({
-        message: 'Refresh token failed',
-        statusCode: 401,
-      })
-    }
-  }
-
-  
 }

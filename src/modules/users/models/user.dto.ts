@@ -69,3 +69,10 @@ export class FindManyUserDto {
   @IsEnum(UserStatuses)
   status?: UserStatuses
 }
+
+export class FindOneUserDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  userId: string
+}
